@@ -1,7 +1,7 @@
 import 'package:rxdart/subjects.dart';
 
 class InMemoryStore<T> {
-  InMemoryStore(this._subject);
+  InMemoryStore(T initial) : _subject = BehaviorSubject.seeded(initial);
   final BehaviorSubject<T> _subject;
 
   Stream<T> get stream => _subject.stream;
