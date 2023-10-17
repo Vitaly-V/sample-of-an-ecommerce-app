@@ -1,4 +1,5 @@
 import 'package:ecommerce_app/src/common_widgets/alert_dialogs.dart';
+import 'package:ecommerce_app/src/features/authentication/presentation/account/account_screen_controller.dart';
 import 'package:ecommerce_app/src/localization/string_hardcoded.dart';
 import 'package:ecommerce_app/src/features/authentication/domain/app_user.dart';
 import 'package:flutter/material.dart';
@@ -8,36 +9,52 @@ import 'package:ecommerce_app/src/constants/app_sizes.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/fake_auth_repository.dart';
-
 /// Simple account screen showing some user info and a logout button.
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<AsyncValue<void>>(accountScreenControllerProvider,
+        (previous, next) {
+      if (next.hasError) {
+        showExceptionAlertDialog(
+          context: context,
+          title: 'Error'.hardcoded,
+          exception: next.error,
+        );
+      }
+    });
+    final state = ref.watch(accountScreenControllerProvider);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Account'.hardcoded),
+        title: state.isLoading
+            ? const CircularProgressIndicator.adaptive()
+            : Text('Account'.hardcoded),
         actions: [
           ActionTextButton(
             text: 'Logout'.hardcoded,
-            onPressed: () async {
-              // * Get the navigator beforehand to prevent this warning:
-              // * Don't use 'BuildContext's across async gaps.
-              // * More info here: https://youtu.be/bzWaMpD1LHY
-              final goRouter = GoRouter.of(context);
-              final logout = await showAlertDialog(
-                context: context,
-                title: 'Are you sure?'.hardcoded,
-                cancelActionText: 'Cancel'.hardcoded,
-                defaultActionText: 'Logout'.hardcoded,
-              );
-              if (logout == true) {
-                await ref.read(authRepositoryProvider).signOut();
-                goRouter.pop();
-              }
-            },
+            onPressed: state.isLoading
+                ? null
+                : () async {
+                    // * Get the navigator beforehand to prevent this warning:
+                    // * Don't use 'BuildContext's across async gaps.
+                    // * More info here: https://youtu.be/bzWaMpD1LHY
+                    final goRouter = GoRouter.of(context);
+                    final logout = await showAlertDialog(
+                      context: context,
+                      title: 'Are you sure?'.hardcoded,
+                      cancelActionText: 'Cancel'.hardcoded,
+                      defaultActionText: 'Logout'.hardcoded,
+                    );
+                    if (logout == true) {
+                      await ref
+                          .read(accountScreenControllerProvider.notifier)
+                          .signOut();
+                      //goRouter.pop();
+                    }
+                  },
           ),
         ],
       ),
