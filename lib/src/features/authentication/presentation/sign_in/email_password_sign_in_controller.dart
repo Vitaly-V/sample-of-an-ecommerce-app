@@ -1,43 +1,35 @@
+import 'dart:async';
+
 import 'package:ecommerce_app/src/features/authentication/data/fake_auth_repository.dart';
-import 'package:ecommerce_app/src/features/authentication/presentation/sign_in/email_password_sign_in_state.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ecommerce_app/src/features/authentication/presentation/sign_in/email_password_sign_in_form_type.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-class EmailPasswordSignInController
-    extends StateNotifier<EmailPasswordSignInState> {
-  EmailPasswordSignInController(
-      {required EmailPasswordSignInFormType formType,
-      required this.authRepository})
-      : super(EmailPasswordSignInState(formType: formType));
+part 'email_password_sign_in_controller.g.dart';
 
-  final FakeAuthRepository authRepository;
-
-  Future<bool> submit(String email, String password) async {
-    state = state.copyWith(value: const AsyncValue.loading());
-    final value = await AsyncValue.guard(() => _authenticate(email, password));
-    state = state.copyWith(value: value);
-    return value.hasError == false;
+@riverpod
+class EmailPasswordSignInController extends _$EmailPasswordSignInController {
+  @override
+  FutureOr<void> build() {
+    // nothing to do
+  }
+  Future<bool> submit(
+      {required String email,
+      required String password,
+      required EmailPasswordSignInFormType formType}) async {
+    state = const AsyncValue.loading();
+    state =
+        await AsyncValue.guard(() => _authenticate(email, password, formType));
+    return state.hasError == false;
   }
 
-  Future<void> _authenticate(String email, String password) {
-    switch (state.formType) {
+  Future<void> _authenticate(
+      String email, String password, EmailPasswordSignInFormType formType) {
+    final authRepository = ref.read(authRepositoryProvider);
+    switch (formType) {
       case EmailPasswordSignInFormType.signIn:
         return authRepository.signInWithEmailAndPassword(email, password);
       case EmailPasswordSignInFormType.register:
         return authRepository.createUserWithEmailAndPassword(email, password);
     }
   }
-
-  void updateFormType(EmailPasswordSignInFormType formType) {
-    state =
-        state.copyWith(formType: formType, value: const AsyncValue.data(null));
-  }
 }
-
-final emailPasswordSignInControllerProvider = StateNotifierProvider.autoDispose
-    .family<EmailPasswordSignInController, EmailPasswordSignInState,
-        EmailPasswordSignInFormType>(
-  (ref, formType) => EmailPasswordSignInController(
-    formType: formType,
-    authRepository: ref.watch(authRepositoryProvider),
-  ),
-);
